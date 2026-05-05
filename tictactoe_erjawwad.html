@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Tic Tac Toe - Er Jawwad</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+  font-family: Arial;
+  background: #0f172a;
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+}
+
+.container {
+  text-align: center;
+  padding: 15px;
+  background: #1e293b;
+  border-radius: 15px;
+  box-shadow: 0 0 20px rgba(56,189,248,0.4);
+  width: 95%;
+  max-width: 420px;
+}
+
+h1 { color: #38bdf8; }
+
+/* 🔥 WELCOME ANIMATION */
+.welcome {
+  white-space: nowrap;
+  overflow: hidden;
+  box-sizing: border-box;
+  animation: scrollText 10s linear infinite;
+  color: #38bdf8;
+  margin-bottom: 10px;
+  font-weight: bold;
+}
+
+@keyframes scrollText {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+.board {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  margin-top: 20px;
+}
+
+.cell {
+  aspect-ratio: 1/1;
+  width: 100%;
+  font-size: 4vw;
+  background: #0f172a;
+  border: 2px solid #38bdf8;
+  color: #38bdf8;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.win {
+  background: #22c55e !important;
+  color: black !important;
+}
+
+.btn {
+  margin: 5px;
+  padding: 8px 12px;
+  background: #38bdf8;
+  border: none;
+  color: black;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.status { margin-top: 10px; }
+.score { margin-top: 5px; font-size: 14px; }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<!-- 🔥 ANIMATED HEADER -->
+<div class="welcome">
+  🚀 Welcome to My Game – Developed by Er Jawwad
+</div>
+
+<h1>🎮 Tic Tac Toe</h1>
+  <h1>
+By: <B>Er Jawwad</B>
+    
+  </h1>
+
+<div id="mode">
+  <button class="btn" onclick="startFriend()">Friend</button>
+  <button class="btn" onclick="showAI()">AI</button>
+</div>
+
+<div id="aiMode" style="display:none;">
+  <button class="btn" onclick="startAI('easy')">Easy</button>
+  <button class="btn" onclick="startAI('hard')">Hard</button>
+</div>
+
+<div id="status" class="status"></div>
+<div id="score" class="score"></div>
+<div id="board" class="board"></div>
+
+<button class="btn" onclick="resetGame()">Restart</button>
+</div>
+
+<script>
+let board=[], size=3;
+let currentPlayer, gameActive, vsAI, difficulty;
+
+let player1="You", player2="A.I";
+let level=1, maxLevel=7, winTarget=4;
+let scoreX=0, scoreO=0;
+
+const boardEl=document.getElementById("board");
+const statusEl=document.getElementById("status");
+const scoreEl=document.getElementById("score");
+const modeEl=document.getElementById("mode");
+const aiModeEl=document.getElementById("aiMode");
+
+function showAI(){
+ modeEl.style.display="none";
+ aiModeEl.style.display="block";
+}
+
+function startFriend(){
+ player1=prompt("Enter Player 1 Name (X):")||"Player 1";
+ player2=prompt("Enter Player 2 Name (O):")||"Player 2";
+ vsAI=false;
+ modeEl.style.display="none";
+ startLevel();
+}
+
+function startAI(diff){
+ player1="You";
+ player2="A.I";
+ vsAI=true;
+ difficulty=diff;
+ aiModeEl.style.display="none";
+ startLevel();
+}
+
+function startLevel(){
+ size=level+2;
+ board=Array(size*size).fill("");
+ currentPlayer="X";
+ gameActive=true;
+
+ boardEl.style.display="grid";
+ boardEl.style.gridTemplateColumns=`repeat(${size},1fr)`;
+
+ draw();
+ updateScore();
+
+ statusEl.innerText=`Level ${level} | ${name(currentPlayer)} Turn`;
+}
+
+function draw(){
+ boardEl.innerHTML="";
+ board.forEach((v,i)=>{
+  let b=document.createElement("button");
+  b.className="cell";
+  b.innerText=v;
+  b.onclick=()=>clickCell(i);
+  boardEl.appendChild(b);
+ });
+}
+
+function clickCell(i){
+ if(board[i]!==""||!gameActive)return;
+
+ board[i]=currentPlayer;
+ draw();
+
+ if(checkWin(currentPlayer)){
+  highlight();
+
+  if(currentPlayer==="X")scoreX++; else scoreO++;
+
+  if(scoreX===winTarget || scoreO===winTarget){
+    if(vsAI){
+      statusEl.innerText = currentPlayer==="X" ? "🏆 You Win!" : "🤖 A.I Wins!";
+    } else {
+      statusEl.innerText = `🏆 ${name(currentPlayer)} Wins!`;
+    }
+    endGame();
+    return;
+  }
+
+  level++;
+  if(level>maxLevel){
+    statusEl.innerText="Game Over";
+    endGame();
+    return;
+  }
+
+  setTimeout(startLevel,700);
+  return;
+ }
+
+ if(!board.includes("")){
+  statusEl.innerText="Draw!";
+  endGame();
+  return;
+ }
+
+ currentPlayer=currentPlayer==="X"?"O":"X";
+ statusEl.innerText=`${name(currentPlayer)} Turn`;
+
+ if(vsAI && currentPlayer==="O"){
+  setTimeout(aiMove,200);
+ }
+}
+
+function aiMove(){
+ let empty=getEmpty();
+ let move;
+
+ if(difficulty==="easy"){
+  move=randomMove(empty);
+ } else {
+  move=findBestMove() ?? randomMove(empty);
+ }
+
+ clickCell(move);
+}
+
+function findBestMove(){
+ for(let i of getEmpty()){
+  board[i]="O";
+  if(checkWin("O")){ board[i]=""; return i; }
+  board[i]="";
+ }
+
+ for(let i of getEmpty()){
+  board[i]="X";
+  if(checkWin("X")){ board[i]=""; return i; }
+  board[i]="";
+ }
+
+ let center=Math.floor(board.length/2);
+ if(board[center]==="") return center;
+
+ return null;
+}
+
+function randomMove(empty){
+ return empty[Math.floor(Math.random()*empty.length)];
+}
+
+function getEmpty(){
+ return board.map((v,i)=>v===""?i:null).filter(v=>v!==null);
+}
+
+function checkWin(p){
+ for(let r=0;r<size;r++){
+  if([...Array(size).keys()].every(c=>board[r*size+c]===p))return true;
+ }
+ for(let c=0;c<size;c++){
+  if([...Array(size).keys()].every(r=>board[r*size+c]===p))return true;
+ }
+ if([...Array(size).keys()].every(i=>board[i*size+i]===p))return true;
+ if([...Array(size).keys()].every(i=>board[i*size+(size-i-1)]===p))return true;
+ return false;
+}
+
+function highlight(){
+ document.querySelectorAll(".cell").forEach(c=>c.classList.add("win"));
+}
+
+function name(p){
+ return p==="X"?player1:player2;
+}
+
+function updateScore(){
+ scoreEl.innerText = `Score → ${player1}: ${scoreX} | ${player2}: ${scoreO}`;
+}
+
+function endGame(){
+ gameActive=false;
+ boardEl.style.display="none";
+}
+
+function resetGame(){
+ level=1;
+ scoreX=0;
+ scoreO=0;
+ boardEl.style.display="none";
+ statusEl.innerText="";
+ scoreEl.innerText="";
+ modeEl.style.display="block";
+ aiModeEl.style.display="none";
+}
+</script>
+
+</body>
+</html>
